@@ -1,0 +1,5 @@
+waveform.vcd
+obj_dir/
+__pycache__/
+.stamp.verilate
+tmp/
