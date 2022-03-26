@@ -28,12 +28,12 @@ waveform.vcd: ./obj_dir/V$(MODULE)
 .stamp.verilate: $(MODULE).sv tb_$(MODULE).cpp
 	@echo
 	@echo "### VERILATING ###"
-	verilator -Wall --trace -cc $(MODULE).sv --exe tb_$(MODULE).cpp
+	verilator -ISystemVerilog-UART/rtl -Wall --trace -cc $(MODULE).sv --exe tb_$(MODULE).cpp
 	@touch .stamp.verilate
 
 .PHONY:lint
 lint: $(MODULE).sv
-	verilator --lint-only $(MODULE).sv
+	verilator -ISystemVerilog-UART/rtl --lint-only $(MODULE).sv
 
 .PHONY: clean
 clean:

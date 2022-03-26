@@ -27,7 +27,7 @@ int main(int argc, char** argv, char** env) {
         if (sim_time == 3) {
             dut->rst = 0;
             dut->in_valid = 1;
-            dut->in_data[0] = 0x61626364;
+            dut->in_data[0] = 0x61626369;
             dut->in_data[1] = 0x61626364;
             dut->in_data[2] = 0x61626364;
             dut->in_data[3] = 0x61626364;
@@ -35,6 +35,14 @@ int main(int argc, char** argv, char** env) {
             dut->in_data[5] = 0x61626364;
             dut->in_data[6] = 0x61626364;
             dut->in_data[7] = 0x61626364;
+            dut->in_data[8] = 0x61626364;
+            dut->in_data[9] = 0x61626364;
+            dut->in_data[10] = 0x61626364;
+            dut->in_data[11] = 0x61626364;
+            dut->in_data[12] = 0x61626364;
+            dut->in_data[13] = 0x61626364;
+            dut->in_data[14] = 0x61626364;
+            dut->in_data[15] = 0x61626364;
 
             dut->in_target[0] = 0x00000000;
             dut->in_target[1] = 0x00000000;
@@ -43,7 +51,7 @@ int main(int argc, char** argv, char** env) {
             dut->in_target[4] = 0x00000000;
             dut->in_target[5] = 0x00000000;
             dut->in_target[6] = 0x00000000;
-            dut->in_target[7] = 0x00f00000;
+            dut->in_target[7] = 0x000f0000;
 
             dut->in_state[0] = 0x1a99f33d;
             dut->in_state[1] = 0x7de98c78;
@@ -71,6 +79,7 @@ int main(int argc, char** argv, char** env) {
             }
             printf("\n");
             printf("%08x\n", dut->out_nonce_found);
+            printf("Cycle count: %llu\n", sim_time / 2);
             break;
         }
     }
