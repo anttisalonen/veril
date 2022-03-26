@@ -11,9 +11,9 @@ module sha256_double
     input  logic [31:0] in_position,
     /* verilator lint_on UNUSED */
 
-    output              out_valid,
-    output logic [31:0][7:0] out_result,
-    output logic [31:0] out_nonce_found
+    output reg             out_valid,
+    output reg [31:0][7:0] out_result,
+    output reg [31:0] out_nonce_found
   );
 
   logic [7:0][31:0] working_state;
@@ -75,7 +75,7 @@ module sha256_double
   );
 
   // Register all inputs
-  always_ff @ (posedge clk, posedge rst) begin
+  always_ff @ (posedge clk) begin
       if (rst) begin
           state <= STT_IDLE;
           working_state <= '0;
@@ -101,7 +101,6 @@ module sha256_double
               end
 
               STT_TUMBLE: begin
-                  tumble_in_valid <= 0;
                   if (tumble_out_valid_r) begin
                       // move to both
                       state <= STT_BOTH;
@@ -111,6 +110,8 @@ module sha256_double
                       tumble_nonce <= tumble_nonce + 1;
                       working_input[15:12] <= tumble_nonce + 1;
                       tumble_in_valid <= 1;
+                  end else begin
+                       tumble_in_valid <= 0;
                   end
               end
 
@@ -155,7 +156,7 @@ module sha256_double
   end
 
   // Register outputs
-  always_ff @ (posedge clk, posedge rst) begin
+  always_ff @ (posedge clk) begin
           if (rst) begin
                   out_valid <= '0;
                   out_result   <= '0;

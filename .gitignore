@@ -3,3 +3,7 @@ obj_dir/
 __pycache__/
 .stamp.verilate
 tmp/
+veril.cache/
+veril.hw/
+veril.runs/
+veril.srcs/utils_1

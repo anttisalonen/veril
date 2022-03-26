@@ -13,8 +13,8 @@ module tumble
     input  logic [31:0] state6,
     input  logic [31:0] state7,
     input  logic [63:0][7:0] in_data,
-    output              out_valid,
-    output logic [7:0][31:0] out_res
+    output reg             out_valid,
+    output reg [7:0][31:0] out_res
   );
    
   logic [31:0] a;
@@ -26,6 +26,7 @@ module tumble
   logic [31:0] g;
   logic [31:0] h;
   logic [6:0]  cycle;
+  logic [6:0]  cycle_next;
   logic [31:0] t1;
   logic [31:0] t2;
   logic [31:0] ep0_r;
@@ -34,15 +35,16 @@ module tumble
   logic [31:0] maj_r;
   logic [31:0] sig0_r;
   logic [31:0] sig1_r;
-  logic [63:0][31:0] m;
+  logic [15:0][31:0] m;
+  logic [31:0] m_next;
   logic stopped;
 
   ep0 ep0_p(.inp(a), .res(ep0_r));
   ep1 ep1_p(.inp(e), .res(ep1_r));
   ch ch_p(.inp1(e), .inp2(f), .inp3(g), .res(ch_r));
   maj maj_p(.inp1(a), .inp2(b), .inp3(c), .res(maj_r));
-  sig0 sig0_p(.inp(m[cycle - 14]), .res(sig0_r));
-  sig1 sig1_p(.inp(m[cycle - 1]), .res(sig1_r));
+  sig0 sig0_p(.inp(m[14]), .res(sig0_r));
+  sig1 sig1_p(.inp(m[1]), .res(sig1_r));
 
   /* verilator lint_off LITENDIAN */
   localparam logic [0:63][31:0] k = {
@@ -58,12 +60,13 @@ module tumble
   /* verilator lint_on LITENDIAN */
 
   always_comb begin
-	  t1 = h + ep1_r + ch_r + k[cycle] + m[cycle];
+	  t1 = h + ep1_r + ch_r + k[cycle] + m[0];
 	  t2 = ep0_r + maj_r;
+	  cycle_next = cycle + 1;
   end
 
   // Register all inputs
-  always_ff @ (posedge clk, posedge rst) begin
+  always_ff @ (posedge clk) begin
           if (rst) begin
                   a      <= '0;
                   b      <= '0;
@@ -73,8 +76,8 @@ module tumble
                   f      <= '0;
                   g      <= '0;
                   h      <= '0;
-		  cycle  <= '0;
-		  stopped <= 1;
+		          cycle  <= '0;
+		          stopped <= 1;
           end else if(in_valid) begin
                   a      <= state0;
                   b      <= state1;
@@ -84,11 +87,11 @@ module tumble
                   f      <= state5;
                   g      <= state6;
                   h      <= state7;
-		  cycle  <= '0;
-		  stopped <= 0;
-		  m[15:0] <= in_data;
-	  end else begin
-		  if(~stopped && cycle < 64) begin
+		          cycle  <= '0;
+	        	  stopped <= 0;
+		          m[15:0] <= in_data;
+	      end else begin
+		    if(~stopped && ~out_valid && cycle < 64) begin
 			  if(cycle >= 15 && cycle < 63) begin
 				  /*
 				  * uint32_t m[64]; <- 64 * 4 = 256 bytes
@@ -97,9 +100,13 @@ module tumble
 				  * m[9] = 9 * 4 = 36 bytes in
 				  * (cycle - 7) * 4 = 9 * 4 = 36
 				  */
-				  m[cycle + 1] <= sig1_r + m[cycle - 6] + sig0_r + m[cycle - 15];
+				  m_next <= sig1_r + m[6] + sig0_r + m[15];
+				  m[0] <= m_next;
+				  for(int i = 1; i < 16; i++) begin
+    				  m[i + 1] <= m[i];
+    		      end
 			  end
-			  cycle <= cycle + 1;
+			  cycle <= cycle_next;
 			  h <= g;
 			  g <= f;
 			  f <= e;
@@ -108,18 +115,16 @@ module tumble
 			  c <= b;
 			  b <= a;
 			  a <= t1 + t2;
-		  end
-	  end
+		    end
+	      end
   end
 
   // Register outputs
-  always_ff @ (posedge clk, posedge rst) begin
+  always_ff @ (posedge clk) begin
           if (rst) begin
-                  out_res      <= '0;
-                  out_valid <= '0;
-		  stopped <= 1;
-          end else begin
-		  if (cycle == 64 && ~in_valid) begin
+              out_res   <= '0;
+              out_valid <= 0;
+          end else if (cycle == 64 && ~in_valid) begin
 		      out_res[0] <= state0 + a;
 		      out_res[1] <= state1 + b;
 		      out_res[2] <= state2 + c;
@@ -128,11 +133,9 @@ module tumble
 		      out_res[5] <= state5 + f;
 		      out_res[6] <= state6 + g;
 		      out_res[7] <= state7 + h;
-                      out_valid <= '1;
-		      stopped <= 1;
+              out_valid <= 1;
 		  end else begin
-                      out_valid <= '0;
-	          end
+	          out_valid <= 0;
           end
   end
 

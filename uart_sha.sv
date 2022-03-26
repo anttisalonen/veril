@@ -81,7 +81,14 @@ module uart_sha
           sha_rst <= 1;
       end
       if (rxif.valid) begin
-          if(rxif.data == "H") begin
+          if(rxif.data == "R") begin // reset
+              sha_rst <= 1;
+              txif.data  <= "O";
+              txif.valid <= 1;
+              rxif.ready <= 0;
+              receive_cnt <= 0;
+              state <= STT_WAIT_HANDSHAKE;
+          end else if(rxif.data == "H") begin // hello
               sha_rst <= 0;
               txif.data  <= "1";
               txif.valid <= 1;
@@ -120,7 +127,7 @@ module uart_sha
                   end
 
                   default: begin
-                      txif.data <= "E";
+                      txif.data <= "e";
                       txif.valid <= 1;
                       rxif.ready <= 0;
                       state <= STT_WAIT_HANDSHAKE;

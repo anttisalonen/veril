@@ -22,7 +22,7 @@
  THE SOFTWARE.
 */
 
-`include "if/uart_if.sv"
+// `include "if/uart_if.sv"
 
 module uart_rx
   #(parameter

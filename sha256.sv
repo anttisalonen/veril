@@ -5,8 +5,8 @@ module sha256
     input in_valid,
     input  logic [31:0][7:0] in_data,
 
-    output              out_valid,
-    output logic [31:0][7:0] out_res
+    output reg             out_valid,
+    output reg [31:0][7:0] out_res
   );
 
   logic [63:0][7:0] data;
@@ -44,7 +44,7 @@ module sha256
   );
 
   // Register all inputs
-  always_ff @ (posedge clk, posedge rst) begin
+  always_ff @ (posedge clk) begin
           if (rst) begin
 		  data <= '0;
 		  tumble_in_valid <= 0;
@@ -68,7 +68,7 @@ module sha256
   end
 
   // Register outputs
-  always_ff @ (posedge clk, posedge rst) begin
+  always_ff @ (posedge clk) begin
           if (rst) begin
                   out_valid <= '0;
                   out_res   <= '0;
