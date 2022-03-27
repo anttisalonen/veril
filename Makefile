@@ -28,7 +28,7 @@ waveform.vcd: ./obj_dir/V$(MODULE)
 .stamp.verilate: $(MODULE).sv tb_$(MODULE).cpp
 	@echo
 	@echo "### VERILATING ###"
-	verilator -ISystemVerilog-UART/rtl -Wall --trace -cc $(MODULE).sv --exe tb_$(MODULE).cpp
+	verilator -ISystemVerilog-UART/rtl/if -ISystemVerilog-UART/rtl -Wall --trace -cc $(MODULE).sv --exe tb_$(MODULE).cpp
 	@touch .stamp.verilate
 
 .PHONY:lint

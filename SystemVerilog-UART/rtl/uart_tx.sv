@@ -22,7 +22,9 @@
  THE SOFTWARE.
 */
 
+/* verilator lint_off MODDUP */
 `include "if/uart_if.sv"
+/* verilator lint_on MODDUP */
 
 module uart_tx
   #(parameter
