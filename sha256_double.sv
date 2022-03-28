@@ -25,6 +25,7 @@ module sha256_double
   logic sha_in_valid;
   logic sha_out_valid;
   logic [31:0][7:0] final_result;
+  logic [31:0][7:0] byte_reversed_final_result;
   logic [31:0] tumble_nonce;
   logic [31:0] sha_nonce;
   logic nonce_found;
@@ -73,6 +74,10 @@ module sha256_double
       .out_valid(sha_out_valid),
       .out_res(final_result)
   );
+
+  always_comb begin
+      byte_reversed_final_result = {<<8{ {<<32{final_result}} }};
+  end
 
   // Register all inputs
   always_ff @ (posedge clk) begin
@@ -136,7 +141,7 @@ module sha256_double
 
               STT_SHA: begin
                   if(sha_out_valid) begin
-                      if({<<8{ {<<32{final_result}} }} < in_target) begin
+                      if(byte_reversed_final_result < in_target) begin
                           nonce_found <= 1;
                           state <= STT_IDLE;
                       end else begin
