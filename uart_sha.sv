@@ -13,7 +13,7 @@ module uart_sha
 
   /* verilator lint_off UNUSED */
   logic sha_in_valid;
-  logic [63:0][7:0] sha_in_data;
+  logic [11:0][7:0] sha_in_data;
   logic [7:0][31:0] sha_in_state;
   logic [31:0][7:0] sha_in_target;
   logic [31:0] sha_in_nonce_base;
@@ -107,22 +107,22 @@ module uart_sha
                       sha_rst <= 0;
                       txif.valid <= 0;
                       receive_cnt <= receive_cnt + 1;
-                      if(receive_cnt < 64) begin
+                      if(receive_cnt < 12) begin
                           sha_in_data[receive_cnt] <= rxif.data;
-                      end else if(receive_cnt < 96) begin
-                          receive_buf[receive_cnt - 64] <= rxif.data;
-                      end else if(receive_cnt < 128) begin
-                          if(receive_cnt == 96) begin
+                      end else if(receive_cnt < 44) begin
+                          receive_buf[receive_cnt - 12] <= rxif.data;
+                      end else if(receive_cnt < 76) begin
+                          if(receive_cnt == 44) begin
                               sha_in_state <= {>>{receive_buf}};
                           end
-                          sha_in_target[receive_cnt - 96] <= rxif.data;
-                      end else if(receive_cnt < 132) begin
-                          receive_buf[receive_cnt - 128] <= rxif.data;
-                      end else if(receive_cnt < 136) begin
-                          if(receive_cnt == 132) begin
+                          sha_in_target[receive_cnt - 44] <= rxif.data;
+                      end else if(receive_cnt < 80) begin
+                          receive_buf[receive_cnt - 76] <= rxif.data;
+                      end else if(receive_cnt < 84) begin
+                          if(receive_cnt == 80) begin
                               sha_in_nonce_base <= {>>{receive_buf[3:0]}};
                           end
-                          receive_buf[receive_cnt - 132] <= rxif.data;
+                          receive_buf[receive_cnt - 80] <= rxif.data;
                       end
                   end
 

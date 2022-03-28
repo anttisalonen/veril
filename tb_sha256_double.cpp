@@ -5,7 +5,7 @@
 #include "Vsha256_double.h"
 #include "Vsha256_double___024root.h"
 
-#define MAX_SIM_TIME 1000000
+#define MAX_SIM_TIME 100000
 vluint64_t sim_time = 0;
 
 int main(int argc, char** argv, char** env) {
@@ -27,22 +27,10 @@ int main(int argc, char** argv, char** env) {
         if (sim_time == 3) {
             dut->rst = 0;
             dut->in_valid = 1;
-            dut->in_data[0] = 0x61626369;
-            dut->in_data[1] = 0x61626364;
-            dut->in_data[2] = 0x61626364;
-            dut->in_data[3] = 0x61626364;
-            dut->in_data[4] = 0x61626364;
-            dut->in_data[5] = 0x61626364;
-            dut->in_data[6] = 0x61626364;
-            dut->in_data[7] = 0x61626364;
-            dut->in_data[8] = 0x61626364;
-            dut->in_data[9] = 0x61626364;
-            dut->in_data[10] = 0x61626364;
-            dut->in_data[11] = 0x61626364;
-            dut->in_data[12] = 0x61626364;
-            dut->in_data[13] = 0x61626364;
-            dut->in_data[14] = 0x61626364;
-            dut->in_data[15] = 0x61626364;
+            dut->in_data[0] = 0x03081a23;
+            dut->in_data[1] = 0x8c8a145e;
+            dut->in_data[2] = 0x98b0021a;
+            dut->in_nonce_base = 0xd0cf1000;
 
             dut->in_target[0] = 0x00000000;
             dut->in_target[1] = 0x00000000;
@@ -50,8 +38,8 @@ int main(int argc, char** argv, char** env) {
             dut->in_target[3] = 0x00000000;
             dut->in_target[4] = 0x00000000;
             dut->in_target[5] = 0x00000000;
-            dut->in_target[6] = 0x00000000;
-            dut->in_target[7] = 0x000f0000;
+            dut->in_target[6] = 0xff9c0000;
+            dut->in_target[7] = 0x00000063;
 
             dut->in_state[0] = 0x1a99f33d;
             dut->in_state[1] = 0x7de98c78;
@@ -62,7 +50,6 @@ int main(int argc, char** argv, char** env) {
             dut->in_state[6] = 0x63c043b5;
             dut->in_state[7] = 0x61c2f2ad;
 
-            dut->in_nonce_base = 0;
             dut->in_position = 0;
         }
 
@@ -74,6 +61,8 @@ int main(int argc, char** argv, char** env) {
         sim_time++;
 
         if(dut->out_valid) {
+            // expected: 26ca20257dee994e128c0970ae215c6adcf28b46fa024dfc6715202f03000000
+            // nonce: d0cf1040
             for(int i = 0; i < 8; i++) {
                 printf("%08x", dut->out_result[i]);
             }

@@ -3,11 +3,11 @@ module sha256_double
     input clk,
     input rst,
     input in_valid,
-    /* verilator lint_off UNUSED */
-    input  logic [63:0][7:0] in_data,
+    input  logic [11:0][7:0] in_data,
     input  logic [7:0][31:0] in_state,
     input  logic [31:0] in_nonce_base,
     input  logic [31:0][7:0] in_target,
+    /* verilator lint_off UNUSED */
     input  logic [31:0] in_position,
     /* verilator lint_on UNUSED */
 
@@ -90,7 +90,7 @@ module sha256_double
           tumble_nonce <= in_nonce_base;
           working_input[11:0] <= in_data[11:0];
           working_input[15:12] <= in_nonce_base;
-          working_input[63:16] <= in_data[63:16];
+          working_input[63:16] <= 384'h000002800000000000000000000000000000000000000000000000000000000000000000000000000000000080000000;
           tumble_in_valid <= 1;
           nonce_found <= 0;
       end else begin
@@ -136,7 +136,7 @@ module sha256_double
 
               STT_SHA: begin
                   if(sha_out_valid) begin
-                      if(final_result < in_target) begin
+                      if({<<8{ {<<32{final_result}} }} < in_target) begin
                           nonce_found <= 1;
                           state <= STT_IDLE;
                       end else begin

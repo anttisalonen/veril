@@ -130,24 +130,11 @@ void reset_dut(Vuart_sha *dut)
 
 void send_data(Vuart_sha *dut)
 {
-    const uint32_t senddata[34] = {
+    const uint32_t senddata[21] = {
             // data
-            0x61626369,
-            0x61626364,
-            0x61626364,
-            0x61626364,
-            0x61626364,
-            0x61626364,
-            0x61626364,
-            0x61626364,
-            0x61626364,
-            0x61626364,
-            0x61626364,
-            0x61626364,
-            0x61626364,
-            0x61626364,
-            0x61626364,
-            0x61626364,
+            0x03081a23,
+            0x8c8a145e,
+            0x98b0021a,
 
             // state
             0x1a99f33d,
@@ -166,10 +153,10 @@ void send_data(Vuart_sha *dut)
             0x00000000,
             0x00000000,
             0x00000000,
-            0x00000000,
-            0x00f00000,
+            0xff9c0000,
+            0x00000063,
 
-            0x00000000, // nonce base
+            0xd0cf1000, // nonce base
             0x00000000, // position
     };
 
@@ -194,7 +181,7 @@ void check_hash_result(Vuart_sha *dut)
             if(ret == 'Y') {
                 wait_for_start_bit(dut, 1000);
                 uint32_t res = rx_uint(dut);
-                printf("Found nonce (expected 0x1da): 0x%08x\n", res);
+                printf("Found nonce (expected 0xd0cf1040): 0x%08x\n", res);
             } else {
                 printf("Received 0x%02x, expected 'Y'\n", ret);
             }
