@@ -160,7 +160,7 @@ void send_data(Vuart_sha *dut)
             0x00000000, // position
     };
 
-    for(int i = 0; i < 34; i++) {
+    for(int i = 0; i < 21; i++) {
         for(int j = 0; j < 4; j++) {
             tx(dut, (senddata[i] >> (j * 8)) & 0xff);
         }

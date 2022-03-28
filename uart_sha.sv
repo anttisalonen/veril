@@ -134,7 +134,7 @@ module uart_sha
                   end
               endcase
           end
-      end else if (state == STT_RECEIVE_DATA && receive_cnt == 136) begin
+      end else if (state == STT_RECEIVE_DATA && receive_cnt == 84) begin
           sha_in_position <= {>>{receive_buf[3:0]}};
           txif.data <= "S";
           txif.valid <= 1;
