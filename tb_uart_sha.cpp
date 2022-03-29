@@ -210,11 +210,6 @@ int main(int argc, char** argv) {
     send_data(dut);
     check_hash_result(dut);
 
-    reset_dut(dut);
-    tx(dut, 'H'); rx_and_assert(dut, '1');
-    send_data(dut);
-    check_hash_result(dut);
-
     m_trace->close();
     delete dut;
     exit(EXIT_SUCCESS);
