@@ -17,7 +17,7 @@ module sha256_double
   );
 
   localparam NUM_SHA_UNITS = 12;
-  localparam MAX_NONCE_CNT = 4294967294 / NUM_SHA_UNITS;
+  localparam MAX_NONCE_CNT = 32'hfffffffe / NUM_SHA_UNITS;
   
   logic [7:0][31:0] working_state;
   logic [63:0][7:0] working_input;
@@ -183,7 +183,7 @@ module sha256_double
               end else begin
                   out_valid <= '0;
                   out_nonce_found <= '0;
-                  if(nonce_cnt >= MAX_NONCE_CNT) begin
+                  if(nonce_cnt > MAX_NONCE_CNT) begin
                       out_exhausted <= 1;
                   end
               end
