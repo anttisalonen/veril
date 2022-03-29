@@ -77,9 +77,10 @@ module uart_sha
   assign uart_rx_data = rxif.data;
   
   always_comb begin
+      unit_found_nonce = 0;
       for(int i = 0; i < NUM_SHA_UNITS; i++) begin
           if(sha_out_valids[i]) begin
-              unit_found_nonce = i;
+              unit_found_nonce = i[$clog2(NUM_SHA_UNITS):0];
           end
       end
   end
