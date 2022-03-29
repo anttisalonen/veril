@@ -11,7 +11,8 @@ module uart_sha
     output out_uart_txd
   );
 
-  localparam NUM_SHA_UNITS = 4;
+  localparam NUM_SHA_UNITS = 12;
+  logic [$clog2(NUM_SHA_UNITS):0] unit_found_nonce;
 
   /* verilator lint_off UNUSED */
   logic sha_in_valid;
@@ -22,8 +23,8 @@ module uart_sha
   logic [31:0] sha_in_position;
 
   logic [NUM_SHA_UNITS-1:0] sha_out_valids;
-  logic [31:0][7:0] sha_out_result;
-  logic [31:0] sha_out_nonce_found;
+  logic [NUM_SHA_UNITS-1:0] sha_out_exhausteds;
+  logic [NUM_SHA_UNITS-1:0][31:0] sha_out_nonce_founds;
   /* verilator lint_off UNDRIVEN */
 
   logic rstn;
@@ -51,8 +52,8 @@ module uart_sha
       .in_target(sha_in_target),
       .in_position(sha_in_position),
       .out_valid(sha_out_valids),
-      .out_result(sha_out_result),
-      .out_nonce_found(sha_out_nonce_found)
+      .out_nonce_found(sha_out_nonce_founds),
+      .out_exhausted(sha_out_exhausteds)
   );
   /* verilator lint_on UNUSED */
 
@@ -74,6 +75,14 @@ module uart_sha
   assign out_uart_txd = txif.sig;
 
   assign uart_rx_data = rxif.data;
+  
+  always_comb begin
+      for(int i = 0; i < NUM_SHA_UNITS; i++) begin
+          if(sha_out_valids[i]) begin
+              unit_found_nonce = i;
+          end
+      end
+  end
 
   always_ff @ (posedge clk) begin
       if (in_rst) begin
@@ -123,9 +132,7 @@ module uart_sha
                       end else if(receive_cnt < 84) begin
                           if(receive_cnt == 80) begin
                               for(int i = 0; i < NUM_SHA_UNITS; i++) begin
-                                  // at 100 MHz, about 1.4s until units start
-                                  // to overlap
-                                  sha_in_nonce_bases[i] <= {>>{receive_buf[3:0]}} + i * 32'h200000;
+                                  sha_in_nonce_bases[i] <= {>>{receive_buf[3:0]}};
                               end
                           end
                           receive_buf[receive_cnt - 80] <= rxif.data;
@@ -141,21 +148,26 @@ module uart_sha
               endcase
           end
       end else if (state == STT_RECEIVE_DATA && receive_cnt == 84) begin
+          for(int i = 0; i < NUM_SHA_UNITS; i++) begin
+              // at 100 MHz, about 1.4s until units start
+              // to overlap
+              sha_in_nonce_bases[i] <= sha_in_nonce_bases[i] + i * 32'h200000;
+          end
           sha_in_position <= {>>{receive_buf[3:0]}};
           txif.data <= "S";
           txif.valid <= 1;
           rxif.ready <= 0;
           state <= STT_HASHING;
           sha_in_valid <= 1;
-      end else if (state == STT_HASHING && |sha_out_valids) begin
+      end else if (state == STT_HASHING && (|sha_out_valids || |sha_out_exhausteds)) begin
           send_cnt <= 0;
           rxif.ready <= 0;
           state <= STT_SEND_RESULT;
-          txif.data <= "Y";
+          txif.data <= |sha_out_valids ? "Y" : "N";
           txif.valid <= 1;
       end else if(state == STT_SEND_RESULT) begin
           if(txif.ready) begin
-              txif.data <= sha_out_nonce_found[8 * send_cnt +: 8];
+              txif.data <= sha_out_nonce_founds[unit_found_nonce][8 * send_cnt +: 8];
               if(send_cnt < 4) begin
                   send_cnt <= send_cnt + 1;
               end else begin

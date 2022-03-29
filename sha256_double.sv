@@ -12,10 +12,13 @@ module sha256_double
     /* verilator lint_on UNUSED */
 
     output reg             out_valid,
-    output reg [31:0][7:0] out_result,
-    output reg [31:0] out_nonce_found
+    output reg [31:0] out_nonce_found,
+    output reg        out_exhausted
   );
 
+  localparam NUM_SHA_UNITS = 12;
+  localparam MAX_NONCE_CNT = 4294967294 / NUM_SHA_UNITS;
+  
   logic [7:0][31:0] working_state;
   logic [63:0][7:0] working_input;
   logic tumble_out_valid_r;
@@ -29,6 +32,7 @@ module sha256_double
   logic [31:0] tumble_nonce;
   logic [31:0] sha_nonce;
   logic nonce_found;
+  logic [31:0] nonce_cnt;
 
   // states:
   // idle (reset)
@@ -74,9 +78,9 @@ module sha256_double
       .out_valid(sha_out_valid),
       .out_res(final_result)
   );
-
+  
   always_comb begin
-      byte_reversed_final_result = {<<8{ {<<32{final_result}} }};
+        byte_reversed_final_result = {<<8{ {<<32{final_result}} }};
   end
 
   // Register all inputs
@@ -87,12 +91,14 @@ module sha256_double
           working_input <= '0;
           nonce_found <= 0;
           tumble_nonce <= '0;
+          nonce_cnt <= '0;
           sha_nonce <= '0;
       end else if(in_valid) begin
           // start
           state <= STT_TUMBLE;
           working_state <= in_state;
           tumble_nonce <= in_nonce_base;
+          nonce_cnt <= '0;
           working_input[11:0] <= in_data[11:0];
           working_input[15:12] <= in_nonce_base;
           working_input[63:16] <= 384'h000002800000000000000000000000000000000000000000000000000000000000000000000000000000000080000000;
@@ -114,6 +120,7 @@ module sha256_double
                       sha_in_data <= tumble_res_r;
                       tumble_nonce <= tumble_nonce + 1;
                       working_input[15:12] <= tumble_nonce + 1;
+                      nonce_cnt <= nonce_cnt + 1;
                       tumble_in_valid <= 1;
                   end else begin
                        tumble_in_valid <= 0;
@@ -147,6 +154,7 @@ module sha256_double
                       end else begin
                           // sha finished, restart tumble and sha
                           tumble_nonce <= tumble_nonce + 1;
+                          nonce_cnt <= nonce_cnt + 1;
                           working_input[15:12] <= tumble_nonce + 1;
                           tumble_in_valid <= 1;
                           sha_in_data <= tumble_res_r;
@@ -164,7 +172,6 @@ module sha256_double
   always_ff @ (posedge clk) begin
           if (rst) begin
                   out_valid <= '0;
-                  out_result   <= '0;
                   out_nonce_found <= '0;
           end else begin
               if (in_valid) begin
@@ -173,10 +180,12 @@ module sha256_double
               end else if (nonce_found) begin
                   out_valid <= '1;
                   out_nonce_found <= sha_nonce;
-                  out_result <= final_result;
               end else begin
                   out_valid <= '0;
                   out_nonce_found <= '0;
+                  if(nonce_cnt >= MAX_NONCE_CNT) begin
+                      out_exhausted <= 1;
+                  end
               end
           end
   end
