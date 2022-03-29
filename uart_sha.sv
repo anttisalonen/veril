@@ -11,15 +11,17 @@ module uart_sha
     output out_uart_txd
   );
 
+  localparam NUM_SHA_UNITS = 4;
+
   /* verilator lint_off UNUSED */
   logic sha_in_valid;
   logic [11:0][7:0] sha_in_data;
   logic [7:0][31:0] sha_in_state;
   logic [31:0][7:0] sha_in_target;
-  logic [31:0] sha_in_nonce_base;
+  logic [NUM_SHA_UNITS-1:0][31:0] sha_in_nonce_bases;
   logic [31:0] sha_in_position;
 
-  logic sha_out_valid;
+  logic [NUM_SHA_UNITS-1:0] sha_out_valids;
   logic [31:0][7:0] sha_out_result;
   logic [31:0] sha_out_nonce_found;
   /* verilator lint_off UNDRIVEN */
@@ -40,15 +42,15 @@ module uart_sha
 
    statetype                 state;
 
-  sha256_double sha256_double_p(.clk(clk),
+  sha256_double sha256_double_p[NUM_SHA_UNITS-1:0](.clk(clk),
       .rst(sha_rst),
       .in_valid(sha_in_valid),
       .in_data(sha_in_data),
       .in_state(sha_in_state),
-      .in_nonce_base(sha_in_nonce_base),
+      .in_nonce_base(sha_in_nonce_bases),
       .in_target(sha_in_target),
       .in_position(sha_in_position),
-      .out_valid(sha_out_valid),
+      .out_valid(sha_out_valids),
       .out_result(sha_out_result),
       .out_nonce_found(sha_out_nonce_found)
   );
@@ -120,7 +122,11 @@ module uart_sha
                           receive_buf[receive_cnt - 76] <= rxif.data;
                       end else if(receive_cnt < 84) begin
                           if(receive_cnt == 80) begin
-                              sha_in_nonce_base <= {>>{receive_buf[3:0]}};
+                              for(int i = 0; i < NUM_SHA_UNITS; i++) begin
+                                  // at 100 MHz, about 1.4s until units start
+                                  // to overlap
+                                  sha_in_nonce_bases[i] <= {>>{receive_buf[3:0]}} + i * 32'h200000;
+                              end
                           end
                           receive_buf[receive_cnt - 80] <= rxif.data;
                       end
@@ -141,7 +147,7 @@ module uart_sha
           rxif.ready <= 0;
           state <= STT_HASHING;
           sha_in_valid <= 1;
-      end else if (state == STT_HASHING && sha_out_valid) begin
+      end else if (state == STT_HASHING && |sha_out_valids) begin
           send_cnt <= 0;
           rxif.ready <= 0;
           state <= STT_SEND_RESULT;
