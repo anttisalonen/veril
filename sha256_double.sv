@@ -114,7 +114,7 @@ module sha256_double
               STT_TUMBLE: begin
                   if (tumble_out_valid_r) begin
                       // move to both
-                      state <= STT_BOTH;
+                      state <= nonce_cnt > MAX_NONCE_CNT ? STT_IDLE : STT_BOTH;
                       sha_in_valid <= 1;
                       sha_nonce <= tumble_nonce;
                       sha_in_data <= tumble_res_r;
@@ -160,7 +160,7 @@ module sha256_double
                           sha_in_data <= tumble_res_r;
                           sha_in_valid <= 1;
                           sha_nonce <= tumble_nonce;
-                          state <= STT_BOTH;
+                          state <= nonce_cnt > MAX_NONCE_CNT ? STT_IDLE : STT_BOTH;
                       end
                   end
               end
@@ -173,10 +173,12 @@ module sha256_double
           if (rst) begin
                   out_valid <= '0;
                   out_nonce_found <= '0;
+                  out_exhausted <= 0;
           end else begin
               if (in_valid) begin
                   out_valid <= '0;
                   out_nonce_found <= '0;
+                  out_exhausted <= 0;
               end else if (nonce_found) begin
                   out_valid <= '1;
                   out_nonce_found <= sha_nonce;

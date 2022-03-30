@@ -38,7 +38,9 @@ void rx_bit_and_assert(Vuart_sha *dut, int bit)
 {
     int ret = rx_bit(dut);
     if(ret != bit) {
-        printf("Expected %d, received %d\n", bit, ret);
+        printf("%llu: Expected bit %d, received %d\n", sim_time / 2, bit, ret);
+        m_trace->close();
+        exit(EXIT_SUCCESS);
     }
 }
 
@@ -53,6 +55,17 @@ unsigned char rx(Vuart_sha *dut)
     rx_bit_and_assert(dut, 1);
     //printf("Received: 0x%02x\n", byte);
     return byte;
+}
+
+void wait_n_cycles(Vuart_sha *dut, int max_cycles)
+{
+    for (int i = 0; i < max_cycles; i++) {
+        dut->clk ^= 1;
+        dut->eval();
+
+        m_trace->dump(sim_time);
+        sim_time++;
+    }
 }
 
 bool wait_for_start_bit(Vuart_sha *dut, int max_cycles)
@@ -88,7 +101,12 @@ void rx_and_assert(Vuart_sha *dut, unsigned char byte)
 {
     unsigned char ret = rx(dut);
     if(ret != byte) {
-        printf("Expected 0x%02x, received 0x%02x\n", byte, ret);
+        if(ret >= '0' && ret <= 'z')
+            printf("Expected '%c', received '%c'\n", byte, ret);
+        else
+            printf("Expected '%c', received 0x%02x\n", byte, ret);
+    } else {
+        printf("rx: '%c'\n", ret);
     }
 }
 
@@ -103,13 +121,14 @@ void tx_bit(Vuart_sha *dut, int bit)
     }
 }
 
-void tx(Vuart_sha *dut, unsigned char byte)
+void tx(Vuart_sha *dut, unsigned char byte, bool log)
 {
     tx_bit(dut, 0);
     for(int j = 0; j < 8; j++) {
         tx_bit(dut, (byte >> j) & 1);
     }
     tx_bit(dut, 1);
+    if(log) printf("tx: '%c'\n", byte);
 }
 
 void reset_dut(Vuart_sha *dut)
@@ -128,7 +147,7 @@ void reset_dut(Vuart_sha *dut)
     }
 }
 
-void send_data(Vuart_sha *dut)
+void send_data(Vuart_sha *dut, bool is_valid)
 {
     const uint32_t senddata[21] = {
             // data
@@ -160,12 +179,17 @@ void send_data(Vuart_sha *dut)
             0x00000000, // position
     };
 
+    printf("Sending data\n");
     for(int i = 0; i < 21; i++) {
         for(int j = 0; j < 4; j++) {
-            tx(dut, (senddata[i] >> (j * 8)) & 0xff);
+            tx(dut, (senddata[i] >> (j * 8)) & 0xff, false);
         }
     }
-    rx_and_assert(dut, 'S');
+    if(is_valid) {
+        rx_and_assert(dut, 'S');
+    } else {
+        rx(dut);
+    }
 }
 
 void check_hash_result(Vuart_sha *dut)
@@ -183,7 +207,10 @@ void check_hash_result(Vuart_sha *dut)
                 uint32_t res = rx_uint(dut);
                 printf("Found nonce (expected 0xd0cf1040): 0x%08x\n", res);
             } else {
-                printf("Received 0x%02x, expected 'Y'\n", ret);
+                if(ret >= '0' && ret <= 'z')
+                    printf("Expected 'Y', received '%c'\n", ret);
+                else
+                    printf("Expected 'Y', received 0x%02x\n", ret);
             }
             break;
         } else {
@@ -201,13 +228,22 @@ int main(int argc, char** argv) {
     dut->trace(m_trace, 5);
     m_trace->open("waveform.vcd");
 
+    // test reaction on invalid input data
     reset_dut(dut);
-    tx(dut, 'H'); rx_and_assert(dut, '1');
-    send_data(dut);
+    tx(dut, 'H', true); rx_and_assert(dut, '1');
+    send_data(dut, true);
+    send_data(dut, false);
+    wait_n_cycles(dut, 100);
+    tx(dut, 'H', true); rx(dut);
+    wait_n_cycles(dut, 100);
+
+    tx(dut, 'H', true); rx_and_assert(dut, '1');
+    tx(dut, 'H', true); rx_and_assert(dut, '1');
+    send_data(dut, true);
     check_hash_result(dut);
 
-    tx(dut, 'H'); rx_and_assert(dut, '1');
-    send_data(dut);
+    tx(dut, 'H', true); rx_and_assert(dut, '1');
+    send_data(dut, true);
     check_hash_result(dut);
 
     m_trace->close();

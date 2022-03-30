@@ -89,6 +89,7 @@ module uart_sha
       if (in_rst) begin
           state <= STT_WAIT_HANDSHAKE;
           rxif.ready <= 1;
+          txif.valid <= 0;
           receive_cnt <= 0;
           sha_rst <= 1;
       end
@@ -110,9 +111,10 @@ module uart_sha
           end else begin
               case(state)
                   STT_WAIT_HANDSHAKE: begin
+                      sha_rst <= 1;
                       txif.data  <= "E";
                       txif.valid <= 1;
-                      rxif.ready <= 0;
+                      rxif.ready <= 1;
                   end
 
                   STT_RECEIVE_DATA: begin
@@ -143,8 +145,9 @@ module uart_sha
                   default: begin
                       txif.data <= "e";
                       txif.valid <= 1;
-                      rxif.ready <= 0;
+                      rxif.ready <= 1;
                       state <= STT_WAIT_HANDSHAKE;
+                      sha_rst <= 1;
                   end
               endcase
           end
@@ -169,9 +172,10 @@ module uart_sha
       end else if(state == STT_SEND_RESULT) begin
           if(txif.ready) begin
               txif.data <= sha_out_nonce_founds[unit_found_nonce][8 * send_cnt +: 8];
-              if(send_cnt < 4) begin
+              if(send_cnt < 4 && |sha_out_valids) begin
                   send_cnt <= send_cnt + 1;
               end else begin
+                  txif.valid <= 0;
                   rxif.ready <= 1;
                   receive_cnt <= 0;
                   state <= STT_WAIT_HANDSHAKE;
@@ -182,6 +186,7 @@ module uart_sha
           txif.valid <= 0;
           rxif.ready <= 1;
           sha_in_valid <= 0;
+          sha_rst <= 0;
       end
   end
 
