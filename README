@@ -1,0 +1,18 @@
+A tiny bitcoin miner written in SystemVerilog, tested with Arty S7 50 FPGA
+
+69 cycles/hash, 12 hashers in parallel, at 100 MHz that's about 17 MH/s. It's not profitable but writing it was fun.
+
+Stack description:
+
+stratum.py - entry point - configure the mining pool connection here.
+mining.py - establishes UART connection to the hardware and sends mining commands, and retrieves shares
+
+UART connection protocol: handshake (one byte in each direction), followed by input data (12 bytes, namely the ones before the nonce), intermediate SHA state (32 bytes, pre-calculated on CPU and output by mining.py), target (32 bytes), starting nonce (4 bytes), 4 bytes of 0's (reserved). Miner acknowledges this and sends back either nonce or a notification of exhaustion of the nonce space.
+
+Hardware - UART handler instantiates 12 hashers. Each hasher has two instances of SHA calculators for the two rounds of double-SHA256.
+
+Testing - Verilator is needed for this. Running "make MODULE=uart_sha clean sim" will run the main toplevel testbench but reduce the number of instantiated hashers in uart_sha.sv first to e.g. two to reduce simulation time. For debugging you can "make waves".
+
+Building - use Xilinx Vivado to load and program to an Arty FPGA. If you have an Arty FPGA that's not S7 50 then that should work but you need to change the pins for UART. Also depending on the size of your FPGA you may need to reduce the number of hashers, this needs to be done in both uart_sha.sv and sha256_double.sv.
+
+To test general functionality without connecting to a mining pool run sertest.py. You may need to change the tty number.
