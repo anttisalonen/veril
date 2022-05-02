@@ -34,16 +34,6 @@ def main():
     #workername = "2N16oE62ZjAPup985dFBQYAuy5zpDraH7Hk"
     #password = "anything"
 
-    #host = "testnet.ckpool.org"
-    #port = 3333
-    #workername = "mkHS9ne12qx9pS9VojpwU5xtRd4T7X7ZUt"
-    #password = "anything"
-
-    host = "bs.poolbinance.com"
-    port = 3333
-    workername = "mkHS9ne12qx9pS9VojpwU5xtRd4T7X7ZUt"
-    password = "anything"
-
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
     sock.sendall('{"id": 1, "method": "mining.subscribe", "params": []}\n'.encode())
